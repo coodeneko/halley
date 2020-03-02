@@ -1,0 +1,51 @@
+image: Visual Studio 2019
+platform: x64
+configuration:
+  - stable
+  - latest
+
+for:
+  - 
+    matrix:
+      only:
+        - configuration: stable
+    install:
+      - cd C:\Tools\vcpkg
+      - git pull
+      # Boost takes too long to build so using pre-added library
+      #- git checkout b831381cf569436177ada02366c4850a665b8465 -- .\ports\boost*
+      # SDL 2.0.7
+      - git checkout fbaaf5b1099e7ebeb023fb8599d7671e70b32911 -- .\ports\sdl2*
+      # Freetype 2.8
+      - git checkout 388d219f256b75452c088b4cc2e16fd38f7f6995 -- .\ports\freetype
+      # Yaml 0.5.4-rc-2
+      - git checkout cb239b92c0064cf268650366fe8d56f2a89fa920 -- .\ports\yaml-cpp
+  - 
+    matrix:
+      only:
+        - configuration: latest
+    install:
+      - cd C:\Tools\vcpkg
+      - vcpkg update
+      - git pull
+
+build_script:
+  - cd %APPVEYOR_BUILD_FOLDER%
+  - mkdir bin
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+  - vcpkg install freetype:x64-windows-static sdl2:x64-windows-static yaml-cpp:x64-windows-static
+  # Boost takes too long to build so using pre-added library
+  #- vcpkg install boost-filesystem:x64-windows-static boost-system:x64-windows-static boost-stacktrace:x64-windows-static boost-variant:x64-windows-static boost-container:x64-windows-static boost-pool:x64-windows-static boost-asio:x64-windows-static
+  - mkdir build
+  - cd build
+  - cmake -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DBUILD_HALLEY_TOOLS=1 -DBUILD_HALLEY_TESTS=0 -DVCPKG_TARGET_TRIPLET="x64-windows-static" -DCMAKE_TOOLCHAIN_FILE=c:/tools/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_C_FLAGS_RELEASE="/MT" -DCMAKE_CXX_FLAGS_RELEASE="/MT" -DBOOST_ROOT=C:\Libraries\boost_1_71_0 -DBoost_USE_STATIC_LIBS=ON -DBoost_USE_STATIC_RUNTIME=ON -DEXTRA_LIBS="winmm.lib version.lib imm32.lib Setupapi.lib" ..
+  - cmake --build . --target halley-cmd --config Release
+  - copy ..\bin32\halley-cmd.exe ..\bin\halley-cmd.exe
+  # halley-cmd stalls out trying to build fonts
+  # potentially related to https://github.com/amzeratul/halley/issues/63
+  #- ..\bin\halley-cmd.exe import C:\projects\halley\. C:\projects\halley
+  #- cmake --build . --target halley-editor --config Release
+
+artifacts:
+  - path: bin32\halley-cmd.exe
+  #- path: bin32\halley-editor.exe

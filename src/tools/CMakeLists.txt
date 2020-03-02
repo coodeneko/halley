@@ -1,5 +1,6 @@
 if (MSVC)
-    set(YAMLCPP_LIBRARY "")
+    find_package(yaml-cpp CONFIG REQUIRED)
+    set(YAMLCPP_LIBRARY "yaml-cpp")
 else ()
     find_package(YamlCpp)
 endif ()
